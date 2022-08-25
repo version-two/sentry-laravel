@@ -17,6 +17,8 @@ final class ViewEngineDecorator implements Engine
 
     /** @var Factory */
     private $viewFactory;
+    
+    protected $lastCompiled = [];
 
     public function __construct(Engine $engine, Factory $viewFactory)
     {
@@ -29,9 +31,12 @@ final class ViewEngineDecorator implements Engine
      */
     public function get($path, array $data = []): string
     {
+        $this->lastCompiled[] = $path;
+        
         $parentSpan = Integration::currentTracingSpan();
 
         if ($parentSpan === null) {
+            array_pop($this->lastCompiled);
             return $this->engine->get($path, $data);
         }
 
@@ -49,6 +54,8 @@ final class ViewEngineDecorator implements Engine
 
         SentrySdk::getCurrentHub()->setSpan($parentSpan);
 
+        array_pop($this->lastCompiled);
+        
         return $result;
     }
 
